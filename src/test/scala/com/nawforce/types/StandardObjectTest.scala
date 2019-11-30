@@ -375,4 +375,18 @@ class StandardObjectTest extends FunSuite {
     assert(org.issues.getMessages(fs.getPath("/work/Account.object")) ==
       "Error: line 5 to 6: Expecting custom field 'AccountNumber__c' to have 'type' child element\n")
   }
+
+  test("Related list bug") {
+    val fs = Jimfs.newFileSystem(Configuration.unix)
+    Files.write(fs.getPath("User.object"), customObject("User",
+      Seq(("Sales_Specialist__c", Some("MasterDetail"), Some("Lead")))).getBytes())
+    Files.write(fs.getPath("Dummy.cls"),"public class Dummy { {Lead a; User b = a.Sales_Specialist__r;} }".getBytes())
+
+    val org = new Org()
+    val pkg = org.addPackageInternal(None, Seq(fs.getPath("/")), Seq())
+    pkg.deployAll()
+    org.issues.dumpMessages(false)
+    assert(!org.issues.hasMessages)
+  }
+
 }
